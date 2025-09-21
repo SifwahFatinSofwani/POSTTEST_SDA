@@ -1,13 +1,16 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <string>
 #include <tabulate/table.hpp>
 
 using namespace std;
 using namespace tabulate;
 
-int jumlahJadwal = 0; int posisi; int pilihan;
-
+int jumlahJadwal = 0;
+int posisi;
+int pilihan;
+int idCounter = 1;
 
 struct Jadwal {
     string kodepenerbangan;
@@ -27,16 +30,20 @@ struct Node {
 
 void tampilkanMenu();
 void menuTambah(Node*& head, int& jumlahJadwal);
+void menuHapus(Node*& head, int& jumlahJadwal);
 void tambahJadwalAwal(Node*& head, int& jumlahJadwal);
 void tambahJadwalAkhir(Node*& head, int& jumlahJadwal);
 void tambahJadwalPosisi(Node*& head, int& jumlahJadwal);
-void sisipkanJadwal(Node*& head, int posisi, int& jumlahJadwal);
+void sisipkanJadwal(Node*& head, int& jumlahJadwal);
 void hapusJadwalAwal(Node*& head, int& jumlahJadwal);
+void hapusJadwalAkhir(Node*& head, int& jumlahJadwal);
+void hapusJadwalPosisi(Node*& head, int& jumlahJadwal);
 void updateStatusPenerbangan(Node* head);
 void tampilkanSemuaJadwal(Node* head);
 void clearScreen();
-Node* inputDataJadwal(int& jumlahJadwal);
-string inputHandling(string& output);
+Node* inputDataJadwal();
+string inputHandling(const string& output);
+void hapusSemuaJadwal(Node*& head);
 
 void clearScreen() {
 #ifdef _WIN32
@@ -58,15 +65,11 @@ string inputHandling(const string& output) {
     }
 }
 
-Node* inputDataJadwal(int& jumlahJadwal) {
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+Node* inputDataJadwal() {
     Node* newNode = new Node;
 
-    if (jumlahJadwal == 0) {
-        newNode->data.kodepenerbangan = "JT-072";
-    } else {
-        newNode->data.kodepenerbangan = "JT-072-" + to_string(jumlahJadwal);
-    }
+    newNode->data.kodepenerbangan = "JT-072-" + to_string(idCounter);
+    idCounter++;
 
     cout << "\n--- Tambah Data Jadwal Baru ---" << endl;
     cout << "Kode Penerbangan Otomatis: " << newNode->data.kodepenerbangan << endl;
@@ -79,12 +82,10 @@ Node* inputDataJadwal(int& jumlahJadwal) {
     newNode->data.waktukedatangan = inputHandling("Waktu Kedatangan (HH:MM): ");
     newNode->data.statuspenerbangan = inputHandling("Status Penerbangan (On Time, Delayed): ");
     
-    jumlahJadwal++;
     newNode->next = nullptr;
     return newNode;
 }
 
-// MODIFIED: Disesuaikan untuk menampilkan semua data baru
 void tampilkanSemuaJadwal(Node* head) {
     clearScreen();
     cout << "--- Menampilkan Semua Jadwal Penerbangan ---" << endl;
@@ -115,7 +116,7 @@ void tampilkanSemuaJadwal(Node* head) {
             i++;
         }
         
-        for (i = 1; i < tabelJadwal.size(); ++i) {
+        for (size_t i = 1; i < tabelJadwal.size(); ++i) {
             tabelJadwal[i].format().font_align(FontAlign::center);
         }
         cout << "\n" << tabelJadwal << endl;
@@ -123,83 +124,89 @@ void tampilkanSemuaJadwal(Node* head) {
 }
 
 void tambahJadwalAwal(Node*& head, int& jumlahJadwal) {
-    Node* nodeBaru = inputDataJadwal(jumlahJadwal);
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    Node* nodeBaru = inputDataJadwal();
     nodeBaru->next = head;
-    head = nodeBaru;   
+    head = nodeBaru;
+    jumlahJadwal++;
     cout << "\nJadwal berhasil ditambahkan di awal!" << endl;
+    system("pause");
 }
 
 void tambahJadwalAkhir(Node*& head, int& jumlahJadwal) {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     if (head == nullptr) {
         tambahJadwalAwal(head, jumlahJadwal);
     } else {
-        Node* nodeBaru = inputDataJadwal(jumlahJadwal);
+        Node* nodeBaru = inputDataJadwal();
         Node* temp = head;
         while (temp->next != nullptr) {
             temp = temp->next;
         }
         temp->next = nodeBaru;
+        jumlahJadwal++;
+        cout << "\nJadwal berhasil ditambahkan di akhir!" << endl;
+        system("pause");
     }
-    cout << "\nJadwal berhasil ditambahkan di akhir!" << endl;
 }
 
 void tambahJadwalPosisi(Node*& head, int& jumlahJadwal) {
-
-    
     if (head == nullptr) {
-        cout << "Urutan ke (hanya 1): ";
-    } else {
-        tampilkanSemuaJadwal(head);
-        cout << "Masukkan posisi (1-" << jumlahJadwal + 1 << "): ";
+        tambahJadwalAwal(head, jumlahJadwal);
+        return;
     }
-    
+
+    tampilkanSemuaJadwal(head);
+    cout << "Masukkan posisi (1-" << jumlahJadwal + 1 << "): ";
     cin >> posisi;
     
     if (cin.fail() || posisi <= 0 || posisi > jumlahJadwal + 1) {
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << "Posisi tidak valid!" << endl;
+        system("pause");
         return;
     }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     if (posisi == 1) {
         tambahJadwalAwal(head, jumlahJadwal);
-        return;
-    } 
-
-    else if (posisi == jumlahJadwal + 1) {
+    } else if (posisi == jumlahJadwal + 1) {
         tambahJadwalAkhir(head, jumlahJadwal);
-        return; 
+    } else {
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        Node* nodeBaru = inputDataJadwal();
+        Node* temp = head;
+        
+        for (int i = 1; i < posisi - 1; i++) {
+            temp = temp->next;
+        }
+        
+        nodeBaru->next = temp->next;
+        temp->next = nodeBaru;
+        jumlahJadwal++;
+        cout << "\nJadwal berhasil disisipkan di posisi " << posisi << "." << endl;
+        system("pause");
     }
-
-    Node* nodeBaru = inputDataJadwal(jumlahJadwal);
-    Node* temp = head;
-    
-    for (int i = 1; i < posisi - 1; i++) {
-        temp = temp->next;
-    }
-    
-    nodeBaru->next = temp->next;
-    temp->next = nodeBaru;
-
-    cout << "\nJadwal berhasil disisipkan di posisi " << posisi << "." << endl;
 }
 
 void sisipkanJadwal(Node*& head, int& jumlahJadwal) {
     if (jumlahJadwal < 2) {
         cout << "\nData masih terlalu sedikit untuk disisipkan!" << endl;
+        system("pause");
         return;
     }
 
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    Node* nodeBaru = inputDataJadwal();
     Node* temp = head;
     for (int i = 1; i < 3 - 1; i++) {
         temp = temp->next;
     }
-    Node* nodeBaru = inputDataJadwal(jumlahJadwal);
     nodeBaru->next = temp->next;
     temp->next = nodeBaru;
+    jumlahJadwal++;
     cout << "\nJadwal berhasil disisipkan di posisi NIM yaitu 3" << endl;
+    system("pause");
 }
 
 void menuTambah(Node*& head, int& jumlahJadwal) {
@@ -216,49 +223,21 @@ void menuTambah(Node*& head, int& jumlahJadwal) {
     cout << subMenuTambah << endl;
     cout << "Pilihan Anda: ";
 
-    int pilihan;
     cin >> pilihan;
 
     switch (pilihan) {
-        case 1:
-            tambahJadwalAwal(head, jumlahJadwal);
-            break;
-        case 2:
-            tambahJadwalAkhir(head, jumlahJadwal);
-            break;
-        case 3:
-            tambahJadwalPosisi(head, jumlahJadwal);
-            break;
-        case 0:
-            cout << "Kembali ke menu utama..." << endl;
-            break;
-        default:
-            break;
+        case 1: tambahJadwalAwal(head, jumlahJadwal); break;
+        case 2: tambahJadwalAkhir(head, jumlahJadwal); break;
+        case 3: tambahJadwalPosisi(head, jumlahJadwal); break;
+        case 0: cout << "Kembali ke menu utama..." << endl; break;
+        default: break;
     }
-}
-
-void tampilkanMenu() {
-    Table menu;
-    menu.add_row({"FLIGHT SCHEDULE SYSTEM"});
-    menu.add_row({"1. Buka Menu Tambah Jadwal"});
-    menu.add_row({"2. Sisipkan Jadwal (Sesuai NIM)"});
-    menu.add_row({"3. Hapus Jadwal Paling Awal"});
-    menu.add_row({"4. Update Status Penerbangan"});
-    menu.add_row({"5. Tampilkan Semua Jadwal"});
-    menu.add_row({"0. Keluar"});
-
-    menu[0].format().font_align(FontAlign::center).font_style({FontStyle::bold}).font_color(Color::cyan).padding_top(1).padding_bottom(1);
-    for (int i = 1; i < menu.size(); ++i) {
-        menu[i].format().font_align(FontAlign::left);
-    }
-    cout << menu << endl;
-    cout << "===================================" << endl;
-    cout << "Pilih menu: ";
 }
 
 void hapusJadwalAwal(Node*& head, int& jumlahJadwal) {
     if (head == nullptr) {
         cout << "\nTidak ada jadwal untuk dihapus." << endl;
+        system("pause");
         return;
     }
     Node* temp = head;
@@ -266,9 +245,118 @@ void hapusJadwalAwal(Node*& head, int& jumlahJadwal) {
     cout << "\nJadwal dengan kode '" << temp->data.kodepenerbangan << "' berhasil dihapus." << endl;
     delete temp;
     jumlahJadwal--;
+    system("pause");
 }
 
-void tampilkanMenuEdit(Node* head) {
+void hapusJadwalAkhir(Node*& head, int& jumlahJadwal) {
+    if (head == nullptr) {
+        cout << "\nTidak ada jadwal untuk dihapus." << endl;
+        system("pause");
+        return;
+    }
+    if (head->next == nullptr) {
+        hapusJadwalAwal(head, jumlahJadwal);
+        return;
+    }
+    Node* temp = head;
+    while (temp->next->next != nullptr) {
+        temp = temp->next;
+    }
+    Node* nodeDihapus = temp->next;
+    cout << "\nJadwal dengan kode '" << nodeDihapus->data.kodepenerbangan << "' berhasil dihapus." << endl;
+    delete nodeDihapus;
+    temp->next = nullptr;
+    jumlahJadwal--;
+    system("pause");
+}
+
+void hapusJadwalPosisi(Node*& head, int& jumlahJadwal) {
+    if (head == nullptr) {
+        cout << "\nTidak ada jadwal untuk dihapus." << endl;
+        system("pause");
+        return;
+    }
+
+    tampilkanSemuaJadwal(head);
+    cout << "Masukkan posisi yang akan dihapus (1-" << jumlahJadwal << "): ";
+    cin >> posisi;
+
+    if (cin.fail() || posisi <= 0 || posisi > jumlahJadwal) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Posisi tidak valid!" << endl;
+        system("pause");
+        return;
+    }
+
+    if (posisi == 1) {
+        hapusJadwalAwal(head, jumlahJadwal);
+    } else if (posisi == jumlahJadwal) {
+        hapusJadwalAkhir(head, jumlahJadwal);
+    } else {
+        Node* temp = head;
+        for (int i = 1; i < posisi - 1; i++) {
+            temp = temp->next;
+        }
+        Node* nodeDihapus = temp->next;
+        temp->next = nodeDihapus->next;
+        cout << "\nJadwal dengan kode '" << nodeDihapus->data.kodepenerbangan << "' berhasil dihapus." << endl;
+        delete nodeDihapus;
+        jumlahJadwal--;
+        system("pause");
+    }
+}
+
+void menuHapus(Node*& head, int& jumlahJadwal) {
+    Table subMenuHapus;
+    subMenuHapus.add_row({"--- Menu Hapus Jadwal ---"});
+    subMenuHapus.add_row({"1. Hapus di Awal"});
+    subMenuHapus.add_row({"2. Hapus di Akhir"});
+    subMenuHapus.add_row({"3. Hapus di Posisi Tertentu"});
+    subMenuHapus.add_row({"0. Kembali ke Menu Utama"});
+
+    subMenuHapus[0].format().font_style({FontStyle::bold}).font_align(FontAlign::center);
+
+    clearScreen();
+    if (head == nullptr) {
+        cout << "\nTidak ada jadwal untuk dihapus." << endl;
+        system("pause");
+        return;
+    }
+    cout << subMenuHapus << endl;
+    cout << "Pilihan Anda: ";
+
+    cin >> pilihan;
+
+    switch (pilihan) {
+        case 1: hapusJadwalAwal(head, jumlahJadwal); break;
+        case 2: hapusJadwalAkhir(head, jumlahJadwal); break;
+        case 3: hapusJadwalPosisi(head, jumlahJadwal); break;
+        case 0: cout << "Kembali ke menu utama..." << endl; break;
+        default: break;
+    }
+}
+
+void tampilkanMenu() {
+    Table menu;
+    menu.add_row({"FLIGHT SCHEDULE SYSTEM"});
+    menu.add_row({"1. Buka Menu Tambah Jadwal"});
+    menu.add_row({"2. Buka Menu Hapus Jadwal"});
+    menu.add_row({"3. Sisipkan Jadwal (Sesuai NIM)"});
+    menu.add_row({"4. Update Jadwal Penerbangan"});
+    menu.add_row({"5. Tampilkan Semua Jadwal"});
+    menu.add_row({"0. Keluar"});
+
+    menu[0].format().font_align(FontAlign::center).font_style({FontStyle::bold}).font_color(Color::cyan).padding_top(1).padding_bottom(1);
+    for (size_t i = 1; i < menu.size(); ++i) {
+        menu[i].format().font_align(FontAlign::left);
+    }
+    cout << menu << endl;
+    cout << "===================================" << endl;
+    cout << "Pilih menu: ";
+}
+
+void tampilkanMenuEdit(Node* current) {
     Table menuEdit;
     menuEdit.add_row({"Jadwal ditemukan pilih data yang ingin diubah:"});
     menuEdit.add_row({"1. Tanggal Keberangkatan"});
@@ -276,44 +364,48 @@ void tampilkanMenuEdit(Node* head) {
     menuEdit.add_row({"3. Tanggal Kedatangan"});
     menuEdit.add_row({"4. Waktu Kedatangan"});
     menuEdit.add_row({"5. Status Penerbangan"});
-    menuEdit.add_row({"0. Keluar"});
+    menuEdit.add_row({"0. Selesai Mengubah"});
 
     menuEdit[0].format().font_align(FontAlign::center).font_style({FontStyle::bold}).font_color(Color::yellow);
-    for (int i = 1; i < menuEdit.size(); ++i) {
-            menuEdit[i].format().font_align(FontAlign::center);
-        }
+    for (size_t i = 1; i < menuEdit.size(); ++i) {
+        menuEdit[i].format().font_align(FontAlign::left);
+    }
     cout << "\n" << menuEdit << endl;
-
 }
 
 void updateStatusPenerbangan(Node* head) {
     if (head == nullptr) {
         cout << "\nBelum ada jadwal yang terdaftar." << endl;
+        system("pause");
         return;
     }
     tampilkanSemuaJadwal(head);
-    string kodeCari;
-    cout << "\nMasukkan Kode Penerbangan yang akan di-update: ";
-    getline(cin, kodeCari);
+    string kodeCari = inputHandling("\nMasukkan Kode Penerbangan yang akan di-update: ");
 
     Node* current = head;
     bool ditemukan = false;
     while (current != nullptr) {
         if (current->data.kodepenerbangan == kodeCari) {
             ditemukan = true;
-            cout << "Jadwal ditemukan! Status saat ini: " << current->data.statuspenerbangan << endl;
             
-            while(true) { 
+            while(true) {
                 clearScreen();
+                tampilkanSemuaJadwal(head);
+                cout << "\n>>> Mengubah Data untuk Kode: " << current->data.kodepenerbangan << " <<<\n";
                 tampilkanMenuEdit(current);
                 cout << "Pilihan Anda: ";
                 
                 cin >> pilihan;
+                if(cin.fail()){
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    pilihan = -1;
+                }
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
                 if (pilihan == 0) {
                     cout << "Selesai mengubah data." << endl;
-                    break; 
+                    break;
                 }
 
                 switch (pilihan) {
@@ -335,11 +427,10 @@ void updateStatusPenerbangan(Node* head) {
                     default:
                         cout << "Pilihan tidak valid." << endl;
                         system("pause");
-                        continue; 
+                        continue;
                 }
                 cout << "Data berhasil diperbarui!" << endl;
                 system("pause");
-
             }
             break;
         }
@@ -347,12 +438,23 @@ void updateStatusPenerbangan(Node* head) {
     }
     if (!ditemukan) {
         cout << "\nJadwal dengan kode '" << kodeCari << "' tidak ditemukan." << endl;
+        system("pause");
     }
+}
+
+void hapusSemuaJadwal(Node*& head) {
+    Node* current = head;
+    while (current != nullptr) {
+        Node* next = current->next;
+        delete current;
+        current = next;
+    }
+    head = nullptr;
 }
 
 int main() {
     Node* headJadwal = nullptr;
-    while (true) { 
+    while (true) {
         clearScreen();
         tampilkanMenu();
         
@@ -360,9 +462,7 @@ int main() {
         if(cin.fail()){
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            pilihan = -1; 
-        } else {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+            pilihan = -1;
         }
 
         switch (pilihan) {
@@ -370,26 +470,26 @@ int main() {
                 menuTambah(headJadwal, jumlahJadwal);
                 break;
             case 2:
-                sisipkanJadwal(headJadwal, jumlahJadwal);
+                menuHapus(headJadwal, jumlahJadwal);
                 break;
             case 3:
-                hapusJadwalAwal(headJadwal, jumlahJadwal);
+                sisipkanJadwal(headJadwal, jumlahJadwal);
                 break;
             case 4:
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
                 updateStatusPenerbangan(headJadwal);
                 break;
             case 5:
                 tampilkanSemuaJadwal(headJadwal);
+                system("pause");
                 break;
             case 0:
-                return 0; 
+                hapusSemuaJadwal(headJadwal);
+                return 0;
             default:
                 cout << "\nPilihan tidak valid. Silakan coba lagi." << endl;
+                system("pause");
                 break;
         }
-
-        cout << "\nTekan Enter untuk kembali ke menu...";
-        cin.get();
     }
 }
-
